@@ -1,0 +1,139 @@
+If you want to display the data from an Excel file in a table on a webpage (using ASP.NET), you can create a simple ASP.NET MVC or ASP.NET Core application that reads the Excel file and renders the data in an HTML table.
+
+Here's how you can achieve that:
+
+Step 1: Create a New ASP.NET Core MVC Project
+Open Visual Studio and create a new ASP.NET Core Web Application project.
+Select the MVC template.
+Step 2: Install the EPPlus NuGet Package
+Install the EPPlus NuGet package as we did earlier:
+
+Install-Package EPPlus
+Step 3: Create the Model (if needed)
+If you'd like to create a model for the data (optional), you can define a class to represent a row of data in the Excel sheet. But if you only want to read and display data directly, we can skip the model and handle everything in the controller.
+
+Step 4: Create a Controller to Handle the Excel File Upload and Display
+Create a controller that will read the Excel file and pass the data to the view.
+
+using Microsoft.AspNetCore.Mvc;
+using OfficeOpenXml;
+using System;
+using System.Collections.Generic;
+using System.IO;
+
+namespace ExcelMvcApp.Controllers
+{
+    public class ExcelController : Controller
+    {
+        // GET: Excel
+        public IActionResult Index()
+        {
+            return View();
+        }
+
+        // POST: Excel/Upload
+        [HttpPost]
+        public IActionResult Upload(IFormFile file)
+        {
+            if (file != null && file.Length > 0)
+            {
+                using (var stream = new MemoryStream())
+                {
+                    file.CopyTo(stream);
+                    using (var package = new ExcelPackage(stream))
+                    {
+                        var worksheet = package.Workbook.Worksheets[0];
+                        var rowCount = worksheet.Dimension.Rows;
+                        var colCount = worksheet.Dimension.Columns;
+                        var data = new List<List<string>>();
+
+                        // Loop through rows and columns to fetch data
+                        for (int row = 1; row <= rowCount; row++)
+                        {
+                            var rowData = new List<string>();
+                            for (int col = 1; col <= colCount; col++)
+                            {
+                                rowData.Add(worksheet.Cells[row, col].Text);
+                            }
+                            data.Add(rowData);
+                        }
+
+                        // Pass data to the view
+                        return View("Index", data);
+                    }
+                }
+            }
+
+            return View("Index");
+        }
+    }
+}
+Step 5: Create the View to Display the Data
+Next, you need to create a view where the data will be displayed in an HTML table. In the Views/Excel/Index.cshtml file, you can render the table as follows:
+
+@{
+    ViewData["Title"] = "Excel Data";
+}
+
+<h2>@ViewData["Title"]</h2>
+
+<form enctype="multipart/form-data" method="post" asp-action="Upload">
+    <input type="file" name="file" />
+    <button type="submit">Upload</button>
+</form>
+
+@if (Model != null && Model.Count > 0)
+{
+    <table border="1">
+        <thead>
+            <tr>
+                @for (int i = 0; i < Model[0].Count; i++)
+                {
+                    <th>Column @i</th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var row in Model)
+            {
+                <tr>
+                    @foreach (var cell in row)
+                    {
+                        <td>@cell</td>
+                    }
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <p>No data available or file not uploaded yet.</p>
+}
+Step 6: Configure Your Project to Allow File Uploads
+Make sure your application can handle file uploads by configuring the necessary settings in Startup.cs (or Program.cs in .NET 6 and beyond):
+
+public void ConfigureServices(IServiceCollection services)
+{
+    services.AddControllersWithViews();
+
+    // Add support for file uploads
+    services.Configure<FormOptions>(options =>
+    {
+        options.MultipartBodyLengthLimit = 104857600; // Set a limit for file uploads (100 MB for example)
+    });
+}
+Step 7: Run the Application
+Build and run the application.
+Go to the URL of your controller (e.g., http://localhost:5000/Excel).
+Upload an Excel file.
+The data from the Excel file will be displayed in a table on the webpage.
+How It Works
+Upload Form: The view allows users to upload an Excel file using an HTML <input type="file">.
+Controller Logic: When the file is uploaded, the controller reads the Excel data using the EPPlus library.
+Displaying Data: The data is then passed to the view and displayed in an HTML table.
+This approach allows you to upload an Excel file via a webpage and view its content in a table format.
+
+Notes
+File Size Limitation: You might want to limit the file size to avoid large uploads that might affect performance.
+Security Considerations: Always sanitize and validate the uploaded file, especially when dealing with file uploads, to prevent security vulnerabilities.
