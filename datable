@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dynamic Table with Add/Remove Rows</title>
+  <style>
+    /* Optional styling for the table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    td, th {
+      padding: 8px;
+      border: 1px solid #ddd;
+    }
+    textarea {
+      width: 100%;
+      resize: none;
+    }
+  </style>
+</head>
+<body>
+
+<div class="set-form">
+  <table class="table table-bordered">
+    <thead>
+      <tr>
+        <th>Question</th>
+        <th>Answer</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody id="table-body">
+      <tr>
+        <td><textarea name="Question" placeholder="Question" id="question" style="resize: none; width: 100%;"></textarea></td>
+        <td><textarea name="Answer" placeholder="Answer" id="answer" style="resize: none; width: 100%;"></textarea></td>
+        <td><button type="button" class="delete-btn" onclick="delete_row(this)">Delete</button></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="set-form">
+  <input type="button" id="more_fields" onclick="add_fields();" value="Add More" class="btn btn-info" />
+</div>
+
+<script>
+  // Add a new row with a delete button
+  function add_fields() {
+    const tbody = document.getElementById('table-body'); // Get the table body
+    const newRow = document.createElement('tr'); // Create a new row element
+
+    newRow.innerHTML = `
+      <td><textarea name="Question" placeholder="Question" id="question" style="resize: none; width: 100%;"></textarea></td>
+      <td><textarea name="Answer" placeholder="Answer" id="answer" style="resize: none; width: 100%;"></textarea></td>
+      <td><button type="button" class="delete-btn" onclick="delete_row(this)">Delete</button></td>
+    `;
+
+    tbody.appendChild(newRow); // Append the new row to the table
+  }
+
+  // Delete the row that contains the delete button
+  function delete_row(button) {
+    const row = button.closest('tr'); // Get the closest row (tr) to the button
+    row.remove(); // Remove the row from the table
+  }
+</script>
+
+</body>
+</html>
