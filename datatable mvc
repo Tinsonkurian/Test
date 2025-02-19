@@ -1,0 +1,192 @@
+Yes, you can absolutely use .NET MVC (Model-View-Controller) as the backend to handle the form submission and save the data into a SQL database. Here's how you can adapt the process to work with a .NET MVC application using SQL Server or any other SQL database.
+High-level steps for using .NET MVC:
+1. Create a Model: Define a model to represent the data you want to store (i.e., question and answer pairs).
+2. Create a Controller: Handle the HTTP POST request to save the data into the database.
+3. Create a View: Display the form with the dynamic table, and submit the data to the backend.
+4. Database Interaction: Use Entity Framework (EF) to interact with the SQL database.
+Step-by-Step Guide:
+1. Create the .NET MVC Application
+1.1 Create a New .NET MVC Project
+First, create a new ASP.NET MVC project in Visual Studio.
+* Open Visual Studio.
+* Create a new project: ASP.NET Web Application.
+* Choose the MVC template.
+1.2 Install Entity Framework
+You'll need Entity Framework (EF) to interact with the SQL database. You can install it via NuGet:
+* Open the NuGet Package Manager Console.
+* Install the Entity Framework package by running: bash Copy   Install-Package EntityFramework
+*   
+2. Create the Model
+Create a model class to represent the question and answer pair.
+In your Models folder, create a class called QuestionAnswer.cs.
+csharp
+Copy
+using System;
+using System.ComponentModel.DataAnnotations;
+
+namespace YourNamespace.Models
+{
+    public class QuestionAnswer
+    {
+        public int Id { get; set; }
+
+        [Required]
+        public string Question { get; set; }
+
+        [Required]
+        public string Answer { get; set; }
+    }
+}
+3. Create the Database Context
+In your Models folder, create a new class called ApplicationDbContext.cs. This class will handle the interaction with the database.
+csharp
+Copy
+using System.Data.Entity;
+
+namespace YourNamespace.Models
+{
+    public class ApplicationDbContext : DbContext
+    {
+        public DbSet<QuestionAnswer> QuestionAnswers { get; set; }
+    }
+}
+4. Create the Controller
+In your Controllers folder, create a new controller called QuestionAnswerController.cs. This will handle the form submission.
+csharp
+Copy
+using System.Linq;
+using System.Web.Mvc;
+using YourNamespace.Models;
+
+namespace YourNamespace.Controllers
+{
+    public class QuestionAnswerController : Controller
+    {
+        private ApplicationDbContext db = new ApplicationDbContext();
+
+        // GET: QuestionAnswer
+        public ActionResult Index()
+        {
+            return View();
+        }
+
+        // POST: Save question-answer pairs to the database
+        [HttpPost]
+        public ActionResult SaveQuestionAnswers(string[] Question, string[] Answer)
+        {
+            if (Question.Length != Answer.Length)
+            {
+                return Json(new { success = false, message = "Questions and Answers count do not match." });
+            }
+
+            for (int i = 0; i < Question.Length; i++)
+            {
+                var questionAnswer = new QuestionAnswer
+                {
+                    Question = Question[i],
+                    Answer = Answer[i]
+                };
+
+                db.QuestionAnswers.Add(questionAnswer);
+            }
+
+            db.SaveChanges();
+
+            return Json(new { success = true, message = "Data saved successfully" });
+        }
+    }
+}
+* The Index action simply returns the view to display the form.
+* The SaveQuestionAnswers action handles the POST request. It takes arrays of questions and answers, saves them to the database, and returns a success message.
+5. Create the View (Frontend)
+In your Views/QuestionAnswer folder, create a view called Index.cshtml. This will contain the dynamic table for question-answer pairs.
+html
+Copy
+@{
+    ViewBag.Title = "Question Answer Form";
+}
+
+<h2>Question Answer Form</h2>
+
+<form id="question-answer-form" method="POST">
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Question</th>
+                <th>Answer</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="table-body">
+            <tr>
+                <td><textarea name="Question[]" placeholder="Question" required></textarea></td>
+                <td><textarea name="Answer[]" placeholder="Answer" required></textarea></td>
+                <td><button type="button" class="delete-btn" onclick="delete_row(this)">Delete</button></td>
+            </tr>
+        </tbody>
+    </table>
+    <input type="button" id="more_fields" onclick="add_fields();" value="Add More" class="btn btn-info" />
+    <button type="submit" class="btn btn-primary">Save Data</button>
+</form>
+
+<script>
+    function add_fields() {
+        const tbody = document.getElementById('table-body');
+        const newRow = document.createElement('tr');
+
+        newRow.innerHTML = `
+            <td><textarea name="Question[]" placeholder="Question" required></textarea></td>
+            <td><textarea name="Answer[]" placeholder="Answer" required></textarea></td>
+            <td><button type="button" class="delete-btn" onclick="delete_row(this)">Delete</button></td>
+        `;
+
+        tbody.appendChild(newRow);
+    }
+
+    function delete_row(button) {
+        const row = button.closest('tr');
+        row.remove();
+    }
+
+    // Handle form submission via AJAX
+    document.getElementById('question-answer-form').onsubmit = function (event) {
+        event.preventDefault(); // Prevent the default form submission
+
+        const formData = new FormData(this);
+
+        fetch('@Url.Action("SaveQuestionAnswers", "QuestionAnswer")', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Data saved successfully');
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error saving data:', error);
+        });
+    };
+</script>
+6. Update the Database
+You need to add the migration to update your database schema. If you're using Entity Framework, run the following commands to create and apply the migration:
+* Enable Migrations: In the Package Manager Console, run: bash Copy   Enable-Migrations
+*   
+* Add Migration: Create the migration by running: bash Copy   Add-Migration InitialCreate
+*   
+* Update Database: Apply the migration to the database: bash Copy   Update-Database
+*   
+7. Running the Application
+* Start the Application: Press F5 in Visual Studio to run the application.
+* Open the page (/QuestionAnswer/Index).
+* You can now add multiple question-answer pairs, click "Add More" to add more rows, and click "Save Data" to save them to your SQL database.
+Conclusion:
+This is how you can use .NET MVC as the backend to save the dynamically entered question-answer data into a SQL database. Here's a summary of the key steps:
+* Define the model (QuestionAnswer).
+* Create a controller to handle form submission and interact with the database.
+* Use AJAX in the view to submit the form data to the backend without a page reload.
+* Use Entity Framework to interact with the SQL database and save the data.
+By following these steps, you can successfully save the entered data from your dynamic table into the SQL database using .NET MVC.
